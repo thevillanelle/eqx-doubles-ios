@@ -25,7 +25,8 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "EQXDoubles",
-            path: "EQXDoubles"
+            path: "EQXDoubles",
+            resources: [.process("Info.plist")]
         )
     ]
 )
