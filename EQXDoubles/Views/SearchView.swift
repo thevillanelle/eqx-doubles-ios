@@ -3,6 +3,7 @@ import SwiftUI
 struct SearchView: View {
     @ObservedObject var viewModel: SearchViewModel
     @State private var showResults = false
+    @State private var showDatePicker = false
     @AppStorage("isDark") private var isDark = true
 
     var body: some View {
@@ -17,28 +18,33 @@ struct SearchView: View {
                 searchButtonSection
             }
             .navigationTitle("EQX Doubles")
+            // navigationDestination MUST be on the NavigationStack body, not inside a Section
+            .navigationDestination(isPresented: $showResults) {
+                ResultsView(viewModel: viewModel)
+            }
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
-                    HStack(spacing: 12) {
-                        Button { isDark.toggle() } label: {
-                            Image(systemName: isDark ? "sun.max" : "moon")
-                                .foregroundColor(Color(red: 0.78, green: 0.95, blue: 0.23))
-                        }
-                        if !viewModel.results.isEmpty {
-                            NavigationLink("Results") { ResultsView(viewModel: viewModel) }
-                        }
+                    Button { isDark.toggle() } label: {
+                        Image(systemName: isDark ? "sun.max" : "moon")
+                            .foregroundColor(Color(red: 0.78, green: 0.95, blue: 0.23))
                     }
                 }
             }
         }
     }
 
+    // ── LOCATIONS ─────────────────────────────────────────────────────────────
     @ViewBuilder
     var locationsSection: some View {
         Section {
             ForEach(Club.neighborhoods, id: \.self) { neighborhood in
-                DisclosureGroup(neighborhood) {
-                    ForEach(Club.allClubs.filter { $0.neighborhood == neighborhood }) { club in
+                let clubsInNbhd = Club.allClubs.filter { $0.neighborhood == neighborhood }
+                let selectedInNbhd = clubsInNbhd.filter { viewModel.params.selectedClubIds.contains($0.id) }
+                let allSelected = selectedInNbhd.count == clubsInNbhd.count
+
+                // DisclosureGroup with custom label showing neighborhood + All button
+                DisclosureGroup {
+                    ForEach(clubsInNbhd) { club in
                         Toggle(club.name, isOn: Binding(
                             get: { viewModel.params.selectedClubIds.contains(club.id) },
                             set: { on in
@@ -46,6 +52,23 @@ struct SearchView: View {
                                 else  { viewModel.params.selectedClubIds.remove(club.id) }
                             }
                         ))
+                    }
+                } label: {
+                    HStack {
+                        Text(neighborhood)
+                            .font(.subheadline)
+                            .foregroundColor(.primary)
+                        Spacer()
+                        Button(allSelected ? "Clear" : "All") {
+                            if allSelected {
+                                clubsInNbhd.forEach { viewModel.params.selectedClubIds.remove($0.id) }
+                            } else {
+                                clubsInNbhd.forEach { viewModel.params.selectedClubIds.insert($0.id) }
+                            }
+                        }
+                        .font(.caption)
+                        .foregroundColor(Color(red: 0.78, green: 0.95, blue: 0.23))
+                        .buttonStyle(.plain) // prevent toggle triggering from button tap
                     }
                 }
             }
@@ -60,13 +83,15 @@ struct SearchView: View {
                         viewModel.params.selectedClubIds = Set(Club.allClubs.map { $0.id })
                     }
                 }
-                .font(.caption).foregroundColor(Color(red: 0.78, green: 0.95, blue: 0.23))
-                Text("· \(viewModel.params.selectedClubIds.count) selected")
+                .font(.caption)
+                .foregroundColor(Color(red: 0.78, green: 0.95, blue: 0.23))
+                Text("· \(viewModel.params.selectedClubIds.count)")
                     .font(.caption).foregroundColor(.secondary)
             }
         }
     }
 
+    // ── CLASS PAIR ─────────────────────────────────────────────────────────────
     @ViewBuilder
     var classPairSection: some View {
         Section("Class Pair") {
@@ -79,14 +104,46 @@ struct SearchView: View {
         }
     }
 
+    // ── DATE — collapses after selection ──────────────────────────────────────
     @ViewBuilder
     var dateSection: some View {
         Section("Date") {
-            DatePicker("Search Date", selection: $viewModel.params.date, displayedComponents: .date)
-                .datePickerStyle(.compact)
+            // Show the selected date as a tappable row that reveals the picker
+            if showDatePicker {
+                DatePicker(
+                    "Search Date",
+                    selection: Binding(
+                        get: { viewModel.params.date },
+                        set: { newDate in
+                            viewModel.params.date = newDate
+                            // Auto-collapse when a date is picked
+                            withAnimation { showDatePicker = false }
+                        }
+                    ),
+                    displayedComponents: .date
+                )
+                .datePickerStyle(.graphical)
+                .tint(Color(red: 0.78, green: 0.95, blue: 0.23))
+            } else {
+                Button {
+                    withAnimation { showDatePicker = true }
+                } label: {
+                    HStack {
+                        Text("Search Date").foregroundColor(.primary)
+                        Spacer()
+                        Text(viewModel.params.date.formatted(date: .abbreviated, time: .omitted))
+                            .foregroundColor(Color(red: 0.78, green: 0.95, blue: 0.23))
+                            .fontWeight(.semibold)
+                        Image(systemName: "chevron.down")
+                            .font(.caption).foregroundColor(.secondary)
+                    }
+                }
+                .buttonStyle(.plain)
+            }
         }
     }
 
+    // ── TIME WINDOW ────────────────────────────────────────────────────────────
     @ViewBuilder
     var timeWindowSection: some View {
         Section("Time Window") {
@@ -111,17 +168,18 @@ struct SearchView: View {
                 }
             )) {
                 Text("Any Time").tag("Any Time")
-                Text("Early AM").tag("Early AM")
-                Text("Late AM").tag("Late AM")
-                Text("Afternoon").tag("Afternoon")
-                Text("Evening").tag("Evening")
+                Text("Early AM (5–9am)").tag("Early AM")
+                Text("Late AM (9am–12pm)").tag("Late AM")
+                Text("Afternoon (12–3pm)").tag("Afternoon")
+                Text("Evening (6–9pm)").tag("Evening")
             }.pickerStyle(.menu)
         }
     }
 
+    // ── GAP ────────────────────────────────────────────────────────────────────
     @ViewBuilder
     var gapSection: some View {
-        Section("Max Gap") {
+        Section("Max Gap Between Classes") {
             Picker("Max Gap", selection: $viewModel.params.maxGap) {
                 Text("≤15m").tag(15); Text("≤30m").tag(30)
                 Text("≤45m").tag(45); Text("≤60m").tag(60)
@@ -129,6 +187,7 @@ struct SearchView: View {
         }
     }
 
+    // ── ORDER ──────────────────────────────────────────────────────────────────
     @ViewBuilder
     var orderSection: some View {
         Section("Pair Order") {
@@ -140,19 +199,25 @@ struct SearchView: View {
         }
     }
 
+    // ── SEARCH BUTTON ──────────────────────────────────────────────────────────
     @ViewBuilder
     var searchButtonSection: some View {
         Section {
             Button {
                 Task {
                     await viewModel.search()
-                    if !viewModel.results.isEmpty { showResults = true }
+                    if !viewModel.results.isEmpty {
+                        showResults = true
+                    }
                 }
             } label: {
                 HStack {
                     Spacer()
-                    if viewModel.isLoading { ProgressView().tint(.black) }
-                    else { Text("Find Doubles →").fontWeight(.bold).kerning(2) }
+                    if viewModel.isLoading {
+                        ProgressView().tint(.black)
+                    } else {
+                        Text("Find Doubles →").fontWeight(.bold).kerning(2)
+                    }
                     Spacer()
                 }
             }
@@ -164,6 +229,5 @@ struct SearchView: View {
                 Text("⚠ \(error)").font(.caption).foregroundColor(.red)
             }
         }
-        .navigationDestination(isPresented: $showResults) { ResultsView(viewModel: viewModel) }
     }
 }
