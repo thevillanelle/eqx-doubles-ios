@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct SearchView: View {
-
     @ObservedObject var viewModel: SearchViewModel
     @State private var showResults = false
     @AppStorage("isDark") private var isDark = true
@@ -20,23 +19,20 @@ struct SearchView: View {
             .navigationTitle("EQX Doubles")
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
-                    HStack(spacing: 8) {
-                        Button {
-                            isDark.toggle()
-                        } label: {
+                    HStack(spacing: 12) {
+                        Button { isDark.toggle() } label: {
                             Image(systemName: isDark ? "sun.max" : "moon")
+                                .foregroundColor(Color(red: 0.78, green: 0.95, blue: 0.23))
                         }
-                        NavigationLink("Results") {
-                            ResultsView(viewModel: viewModel)
+                        if !viewModel.results.isEmpty {
+                            NavigationLink("Results") { ResultsView(viewModel: viewModel) }
                         }
-                        .disabled(viewModel.results.isEmpty)
                     }
                 }
             }
         }
     }
 
-    // ── LOCATIONS ─────────────────────────────────────────────────────────────
     @ViewBuilder
     var locationsSection: some View {
         Section {
@@ -64,44 +60,33 @@ struct SearchView: View {
                         viewModel.params.selectedClubIds = Set(Club.allClubs.map { $0.id })
                     }
                 }
-                .font(.caption)
-                .foregroundColor(Color(red: 0.78, green: 0.95, blue: 0.23))
-                Text("\(viewModel.params.selectedClubIds.count) selected")
-                    .foregroundColor(.secondary)
-                    .font(.caption)
+                .font(.caption).foregroundColor(Color(red: 0.78, green: 0.95, blue: 0.23))
+                Text("· \(viewModel.params.selectedClubIds.count) selected")
+                    .font(.caption).foregroundColor(.secondary)
             }
         }
     }
 
-    // ── CLASS PAIR ─────────────────────────────────────────────────────────────
     @ViewBuilder
     var classPairSection: some View {
         Section("Class Pair") {
             Picker("① First Class", selection: $viewModel.params.cat1) {
-                ForEach(Category.allCategories) { cat in
-                    Text(cat.label).tag(cat.id)
-                }
+                ForEach(Category.allCategories) { cat in Text(cat.label).tag(cat.id) }
             }
             Picker("② Second Class", selection: $viewModel.params.cat2) {
-                ForEach(Category.allCategories) { cat in
-                    Text(cat.label).tag(cat.id)
-                }
+                ForEach(Category.allCategories) { cat in Text(cat.label).tag(cat.id) }
             }
         }
     }
 
-    // ── DATE ───────────────────────────────────────────────────────────────────
     @ViewBuilder
     var dateSection: some View {
         Section("Date") {
-            DatePicker("Search Date",
-                       selection: $viewModel.params.date,
-                       displayedComponents: .date)
-            .datePickerStyle(.graphical)
+            DatePicker("Search Date", selection: $viewModel.params.date, displayedComponents: .date)
+                .datePickerStyle(.compact)
         }
     }
 
-    // ── TIME WINDOW ────────────────────────────────────────────────────────────
     @ViewBuilder
     var timeWindowSection: some View {
         Section("Time Window") {
@@ -110,7 +95,7 @@ struct SearchView: View {
                     if viewModel.params.winStart == 300  && viewModel.params.winEnd == 1380 { return "Any Time" }
                     if viewModel.params.winStart == 300  && viewModel.params.winEnd == 540  { return "Early AM" }
                     if viewModel.params.winStart == 540  && viewModel.params.winEnd == 720  { return "Late AM"  }
-                    if viewModel.params.winStart == 720  && viewModel.params.winEnd == 900  { return "Afternoon"}
+                    if viewModel.params.winStart == 720  && viewModel.params.winEnd == 900  { return "Afternoon" }
                     if viewModel.params.winStart == 1080 && viewModel.params.winEnd == 1260 { return "Evening"  }
                     return "Any Time"
                 },
@@ -121,7 +106,7 @@ struct SearchView: View {
                     case "Late AM":   viewModel.params.winStart = 540;  viewModel.params.winEnd = 720
                     case "Afternoon": viewModel.params.winStart = 720;  viewModel.params.winEnd = 900
                     case "Evening":   viewModel.params.winStart = 1080; viewModel.params.winEnd = 1260
-                    default:          viewModel.params.winStart = 300;  viewModel.params.winEnd = 1380
+                    default: viewModel.params.winStart = 300; viewModel.params.winEnd = 1380
                     }
                 }
             )) {
@@ -130,39 +115,31 @@ struct SearchView: View {
                 Text("Late AM").tag("Late AM")
                 Text("Afternoon").tag("Afternoon")
                 Text("Evening").tag("Evening")
-            }
-            .pickerStyle(.menu)
+            }.pickerStyle(.menu)
         }
     }
 
-    // ── GAP ────────────────────────────────────────────────────────────────────
     @ViewBuilder
     var gapSection: some View {
-        Section("Max Gap Between Classes") {
+        Section("Max Gap") {
             Picker("Max Gap", selection: $viewModel.params.maxGap) {
-                Text("≤15m").tag(15)
-                Text("≤30m").tag(30)
-                Text("≤45m").tag(45)
-                Text("≤60m").tag(60)
-            }
-            .pickerStyle(.segmented)
+                Text("≤15m").tag(15); Text("≤30m").tag(30)
+                Text("≤45m").tag(45); Text("≤60m").tag(60)
+            }.pickerStyle(.segmented)
         }
     }
 
-    // ── ORDER ──────────────────────────────────────────────────────────────────
     @ViewBuilder
     var orderSection: some View {
         Section("Pair Order") {
             Picker("Order", selection: $viewModel.params.pairOrder) {
-                Text("Either Order").tag("either")
-                Text("① First → ②").tag("1first")
-                Text("② First → ①").tag("2first")
-            }
-            .pickerStyle(.segmented)
+                Text("Either").tag("either")
+                Text("① → ②").tag("1first")
+                Text("② → ①").tag("2first")
+            }.pickerStyle(.segmented)
         }
     }
 
-    // ── SEARCH BUTTON ──────────────────────────────────────────────────────────
     @ViewBuilder
     var searchButtonSection: some View {
         Section {
@@ -174,13 +151,8 @@ struct SearchView: View {
             } label: {
                 HStack {
                     Spacer()
-                    if viewModel.isLoading {
-                        ProgressView().tint(.black)
-                    } else {
-                        Text("Find Doubles →")
-                            .fontWeight(.bold)
-                            .kerning(2)
-                    }
+                    if viewModel.isLoading { ProgressView().tint(.black) }
+                    else { Text("Find Doubles →").fontWeight(.bold).kerning(2) }
                     Spacer()
                 }
             }
@@ -189,13 +161,9 @@ struct SearchView: View {
             .disabled(viewModel.isLoading || viewModel.params.selectedClubIds.isEmpty)
 
             if let error = viewModel.error {
-                Text("⚠ \(error)")
-                    .font(.caption)
-                    .foregroundColor(.red)
+                Text("⚠ \(error)").font(.caption).foregroundColor(.red)
             }
         }
-        .navigationDestination(isPresented: $showResults) {
-            ResultsView(viewModel: viewModel)
-        }
+        .navigationDestination(isPresented: $showResults) { ResultsView(viewModel: viewModel) }
     }
 }
