@@ -64,12 +64,12 @@ struct SearchView: View {
     @ViewBuilder
     var classPairSection: some View {
         Section("Class Pair") {
-            Picker("\u2460 First Class", selection: $viewModel.params.cat1) {
+            Picker("① First Class", selection: $viewModel.params.cat1) {
                 ForEach(Category.allCategories) { cat in
                     Text(cat.label).tag(cat.id)
                 }
             }
-            Picker("\u2461 Second Class", selection: $viewModel.params.cat2) {
+            Picker("② Second Class", selection: $viewModel.params.cat2) {
                 ForEach(Category.allCategories) { cat in
                     Text(cat.label).tag(cat.id)
                 }
@@ -127,10 +127,10 @@ struct SearchView: View {
     var gapSection: some View {
         Section("Max Gap Between Classes") {
             Picker("Max Gap", selection: $viewModel.params.maxGap) {
-                Text("\u226415m").tag(15)
-                Text("\u226430m").tag(30)
-                Text("\u226445m").tag(45)
-                Text("\u226460m").tag(60)
+                Text("≤15m").tag(15)
+                Text("≤30m").tag(30)
+                Text("≤45m").tag(45)
+                Text("≤60m").tag(60)
             }
             .pickerStyle(.segmented)
         }
@@ -142,8 +142,8 @@ struct SearchView: View {
         Section("Pair Order") {
             Picker("Order", selection: $viewModel.params.pairOrder) {
                 Text("Either Order").tag("either")
-                Text("\u2460 First \u2192 \u2461").tag("1first")
-                Text("\u2461 First \u2192 \u2460").tag("2first")
+                Text("① First → ②").tag("1first")
+                Text("② First → ①").tag("2first")
             }
             .pickerStyle(.segmented)
         }
@@ -164,7 +164,7 @@ struct SearchView: View {
                     if viewModel.isLoading {
                         ProgressView().tint(.black)
                     } else {
-                        Text("Find Doubles \u2192")
+                        Text("Find Doubles →")
                             .fontWeight(.bold)
                             .kerning(2)
                     }
@@ -176,7 +176,7 @@ struct SearchView: View {
             .disabled(viewModel.isLoading || viewModel.params.selectedClubIds.isEmpty)
 
             if let error = viewModel.error {
-                Text("\u26a0 \(error)")
+                Text("⚠ \(error)")
                     .font(.caption)
                     .foregroundColor(.red)
             }
