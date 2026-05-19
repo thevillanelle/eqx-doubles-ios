@@ -20,9 +20,7 @@ let package = Package(
     name: "EQXDoubles",
     platforms: [
         // Minimum iOS version — iOS 17 supports all the SwiftUI features we use
-        .iOS(.v17),
-        // macOS 14 for Previews on Mac Catalyst
-        .macOS(.v14)
+        .iOS(.v17)
     ],
     targets: [
         .executableTarget(
