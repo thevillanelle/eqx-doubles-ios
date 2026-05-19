@@ -52,6 +52,7 @@
 // =============================================================================
 
 import Foundation
+import Combine
 
 // MARK: - SearchViewModel
 
