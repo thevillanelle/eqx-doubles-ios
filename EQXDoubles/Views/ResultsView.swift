@@ -72,8 +72,6 @@ struct ResultsView: View {
             }
         }
         .navigationTitle(viewModel.hasSearched ? "\(viewModel.results.count) Pairs" : "Results")
-        #if os(iOS)
-        .navigationBarTitleDisplayMode(.inline)
-        #endif
+
     }
 }
