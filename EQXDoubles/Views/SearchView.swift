@@ -4,6 +4,7 @@ struct SearchView: View {
 
     @ObservedObject var viewModel: SearchViewModel
     @State private var showResults = false
+    @AppStorage("isDark") private var isDark = true
 
     var body: some View {
         NavigationStack {
@@ -18,21 +19,24 @@ struct SearchView: View {
             }
             .navigationTitle("EQX Doubles")
             .toolbar {
-                // .primaryAction works on iOS, macOS, and all Apple platforms.
-                // .navigationBarTrailing is iOS-only and was causing the macOS error.
                 ToolbarItem(placement: .primaryAction) {
-                    NavigationLink("Results") {
-                        ResultsView(viewModel: viewModel)
+                    HStack(spacing: 8) {
+                        Button {
+                            isDark.toggle()
+                        } label: {
+                            Image(systemName: isDark ? "sun.max" : "moon")
+                        }
+                        NavigationLink("Results") {
+                            ResultsView(viewModel: viewModel)
+                        }
+                        .disabled(viewModel.results.isEmpty)
                     }
-                    .disabled(viewModel.results.isEmpty)
                 }
             }
         }
     }
 
     // ── LOCATIONS ─────────────────────────────────────────────────────────────
-    // Club.neighborhoods returns [String] — a flat sorted list of neighborhood names.
-    // We iterate that, then filter Club.allClubs for each neighborhood.
     @ViewBuilder
     var locationsSection: some View {
         Section {
@@ -53,14 +57,23 @@ struct SearchView: View {
             HStack {
                 Text("Locations")
                 Spacer()
+                Button(viewModel.params.selectedClubIds.count == Club.allClubs.count ? "Clear All" : "Select All") {
+                    if viewModel.params.selectedClubIds.count == Club.allClubs.count {
+                        viewModel.params.selectedClubIds = []
+                    } else {
+                        viewModel.params.selectedClubIds = Set(Club.allClubs.map { $0.id })
+                    }
+                }
+                .font(.caption)
+                .foregroundColor(Color(red: 0.78, green: 0.95, blue: 0.23))
                 Text("\(viewModel.params.selectedClubIds.count) selected")
-                    .foregroundColor(.green)
+                    .foregroundColor(.secondary)
+                    .font(.caption)
             }
         }
     }
 
     // ── CLASS PAIR ─────────────────────────────────────────────────────────────
-    // Category.allCategories is the correct property name (not Category.all).
     @ViewBuilder
     var classPairSection: some View {
         Section("Class Pair") {
@@ -84,7 +97,7 @@ struct SearchView: View {
             DatePicker("Search Date",
                        selection: $viewModel.params.date,
                        displayedComponents: .date)
-            .datePickerStyle(.compact)
+            .datePickerStyle(.graphical)
         }
     }
 
